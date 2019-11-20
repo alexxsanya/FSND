@@ -62,16 +62,17 @@ def create_app(test_config=None):
     page = request.args.get('page', 1, type=int)
     start = (page - 1)*QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE
+    
     f_questions = [question.format() for question in collection]
 
     return f_questions[start:end]
 
-  @app.route('/category/<int:category_id>/questions')
-  def get_questions(category_id):
+  @app.route('/questions')
+  def get_questions():
     categories = Category.query.order_by(Category.id).all()
     data = [category.format() for category in categories]
 
-    questions = Question.query.filter(Question.category == category_id)
+    questions = Question.query.all()
     f_questions = question_pagination(request, questions)
     if data is None:
         abort(404) 
@@ -79,7 +80,7 @@ def create_app(test_config=None):
         return jsonify({
             'success': True,
             'questions': f_questions,
-            'current_category': category_id,
+            'current_category': '',
             'categories': data,
             'count': len(f_questions)
         }), 200
@@ -133,7 +134,21 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
-
+  @app.route('/category/<int:category_id>/questions')
+  def get_category_questions(category_id):
+    questions = Question.query.filter(Question.category == category_id).all()
+    
+    f_questions = question_pagination(request, questions)
+    print(f_questions)
+    if f_questions is None:
+        abort(404) 
+    else:
+        return jsonify({
+            'success': True,
+            'questions': f_questions,
+            'current_category': category_id,
+            'count': len(f_questions)
+        }), 200
 
   '''
   @TODO: 
