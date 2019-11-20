@@ -66,6 +66,24 @@ def create_app(test_config=None):
 
     return f_questions[start:end]
 
+  @app.route('/category/<int:category_id>/questions')
+  def get_questions(category_id):
+    categories = Category.query.order_by(Category.id).all()
+    data = [category.format() for category in categories]
+
+    questions = Question.query.filter(Question.category == category_id)
+    f_questions = question_pagination(request, questions)
+    if data is None:
+        abort(404) 
+    else:
+        return jsonify({
+            'success': True,
+            'questions': f_questions,
+            'current_category': category_id,
+            'categories': data,
+            'count': len(f_questions)
+        }), 200
+
   '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
