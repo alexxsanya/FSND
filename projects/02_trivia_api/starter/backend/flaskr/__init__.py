@@ -164,6 +164,26 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
+  @app.route('/questions', methods=['POST'])
+  def search_questions():
+
+    data = request.get_json()
+    search = data.get('searchTerm', None)
+    current_category =request.args.get('category', 1, type=int)
+
+    try:
+      results = Question.query.order_by(BQuestion.id).filter(Question.question.ilike(f'%{search}%'))
+      f_questions = question_pagination(request, results)
+
+      return jsonify({
+          'success': True,
+          'questions': f_questions,
+          'current_category ': current_category,
+          'total_questions': len(f_questions)
+      }), 200
+      
+    except:
+      abort(404)
 
   '''
   @TODO: 
@@ -173,7 +193,7 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
-  @app.route('/category/<int:category_id>/questions')
+  @app.route('/categories/<int:category_id>/questions')
   def get_category_questions(category_id):
     questions = Question.query.filter(Question.category == category_id).all()
     
