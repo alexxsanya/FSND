@@ -36,7 +36,7 @@ def create_app(test_config=None):
   @app.route('/categories')
   def get_all_categories():
     categories = Category.query.order_by(Category.id).all()
-    data = [category.format() for category in categories]
+    data = [category.id for category in categories]
 
     if data is None:
         abort(404)
@@ -44,7 +44,7 @@ def create_app(test_config=None):
         return jsonify({
             'success': True,
             'categories': data,
-            'count': len(categories)
+            'total_questions': len(categories)
         }), 200
   '''
   @TODO: 
@@ -70,19 +70,21 @@ def create_app(test_config=None):
   @app.route('/questions')
   def get_questions():
     categories = Category.query.order_by(Category.id).all()
-    data = [category.format() for category in categories]
+    data = [category.id for category in categories]
+    # current_category = request.args.get('category', 1, type=int)
 
     questions = Question.query.all()
     f_questions = question_pagination(request, questions)
+
     if data is None:
         abort(404) 
     else:
         return jsonify({
             'success': True,
             'questions': f_questions,
-            'current_category': '',
+            'current_category': 1,
             'categories': data,
-            'count': len(f_questions)
+            'total_questions': len(f_questions)
         }), 200
 
   '''
@@ -115,19 +117,18 @@ def create_app(test_config=None):
   of the questions list in the "List" tab.  
   '''
 
-  @app.route('/questions', methods=['POST'])
+  @app.route('/questions/create', methods=['POST'])
   def add_question():
     data = request.get_json()
 
-    question = data.get('question', None, type=str),
-    answer = data.get('answer', None, type=str),
-    difficulty = data.get('difficulty', None, type=int),
-    category = data.get('category', None, type=int)
+    question = data.get('question', None),
+    answer = data.get('answer', None),
+    difficulty = data.get('difficulty', None),
+    category = data.get('category', None)
 
     try:
       #check if question already exists
-      results = Question.query.filter(Question.question.ilike(f'%{question}%'))
-      print(results)
+      results = Question.query.filter(Question.question.ilike(f'%{question}%')).all()
       if results:
 
         return jsonify({
@@ -140,16 +141,20 @@ def create_app(test_config=None):
         question = Question(
           question=question,
           answer=answer, 
-          difficulty=int(difficulty),
-          category=int(category))
+          difficulty=difficulty,
+          category=category)
 
         question.insert()
+
+        categories = Category.query.order_by(Category.id).all()
+        data = [category.id for category in categories]
           
         return jsonify({
           'success': True,
           'status': 201,
           'question': question.format(),
-          'created': question.id
+          'created': question.id,
+          'categories': data
         }), 201
     except:
       abort(400)  
@@ -172,16 +177,21 @@ def create_app(test_config=None):
     current_category =request.args.get('category', 1, type=int)
 
     try:
-      results = Question.query.order_by(BQuestion.id).filter(Question.question.ilike(f'%{search}%'))
+      results = Question.query.order_by(Question.id).filter(Question.question.ilike(f'%{search}%')).all()
       f_questions = question_pagination(request, results)
 
+
+      categories = Category.query.order_by(Category.id).all()
+      cat_data = [category.format() for category in categories]
+      
       return jsonify({
           'success': True,
           'questions': f_questions,
           'current_category ': current_category,
-          'total_questions': len(f_questions)
+          'total_questions': len(f_questions),
+          'categories': cat_data
       }), 200
-      
+
     except:
       abort(404)
 
@@ -198,7 +208,7 @@ def create_app(test_config=None):
     questions = Question.query.filter(Question.category == category_id).all()
     
     f_questions = question_pagination(request, questions)
-    print(f_questions)
+    
     if f_questions is None:
         abort(404) 
     else:
@@ -206,7 +216,7 @@ def create_app(test_config=None):
             'success': True,
             'questions': f_questions,
             'current_category': category_id,
-            'count': len(f_questions)
+            'total_questions': len(f_questions)
         }), 200
 
   '''
@@ -220,6 +230,27 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
+  @app.route('/quizzes')
+  def get_quiz_questions():
+    data = request.get_json()
+    previous_questions = data.get('previous_questions', None),
+    quiz_category  = data.get('quiz_category', None),
+
+    questions = Question.query.filter(Question.category == quiz_category).all()
+
+    questions_list = [question.format() for question in questions]
+
+    if questions_list is None:
+        abort(404) 
+    else:
+
+      # Now find a unique question that hasn't been asked and return to user
+      
+        return jsonify({
+            'success': True,
+            'question': questions_list,
+            'current_category': quiz_category,
+        }), 200
 
   '''
   @TODO: 
