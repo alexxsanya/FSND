@@ -12,3 +12,4 @@ venv
 ehthumbs.db
 Thumbs.db
 *.env
+node_modules
