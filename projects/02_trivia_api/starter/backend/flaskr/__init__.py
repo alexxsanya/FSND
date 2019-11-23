@@ -128,7 +128,7 @@ def create_app(test_config=None):
 
     try:
       #check if question already exists
-      results = Question.query.filter(Question.question.ilike(f'%{question}%')).all()
+      results = Question.query.filter(Question.question == question).all()
       if results:
 
         return jsonify({
@@ -205,7 +205,7 @@ def create_app(test_config=None):
   '''
   @app.route('/categories/<int:category_id>/questions')
   def get_category_questions(category_id):
-    questions = Question.query.filter(Question.category == category_id).all()
+    questions = Question.query.filter(Question.category == str(category_id)).all()
     
     f_questions = question_pagination(request, questions)
 
@@ -236,10 +236,10 @@ def create_app(test_config=None):
     previous_questions = data.get('previous_questions', [1]),
     quiz_category  = data.get('quiz_category', None),
 
-    if(quiz_category[0].get('type') == 'click'):
+    if(quiz_category[0].get('type') is 'click'):
       questions = Question.query.order_by(Question.id).all()
     else:
-      questions = Question.query.filter(Question.category == quiz_category[0].get('type')).all()
+      questions = Question.query.filter(Question.category == str(quiz_category[0].get('type'))).all()
 
     question_bank = [question.format() for question in questions]
 
