@@ -6,7 +6,7 @@ import random
 
 from models import setup_db, Question, Category
 
-QUESTIONS_PER_PAGE = 10
+QUESTIONS_PER_PAGE = 20
 
 def create_app(test_config=None):
   # create and configure the app
@@ -94,7 +94,7 @@ def create_app(test_config=None):
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
-  @app.route('/questions/<int:question_id>', methods=['DELETE'])
+  @app.route('/questions/<int:question_id>/delete', methods=['DELETE'])
   def delete_question(question_id):
     try:
         question = Question.query.get(question_id)
@@ -208,7 +208,7 @@ def create_app(test_config=None):
     questions = Question.query.filter(Question.category == category_id).all()
     
     f_questions = question_pagination(request, questions)
-    
+
     if f_questions is None:
         abort(404) 
     else:
@@ -230,25 +230,39 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
-  @app.route('/quizzes')
+  @app.route('/quizzes', methods=['POST'])
   def get_quiz_questions():
     data = request.get_json()
-    previous_questions = data.get('previous_questions', None),
+    previous_questions = data.get('previous_questions', [1]),
     quiz_category  = data.get('quiz_category', None),
 
-    questions = Question.query.filter(Question.category == quiz_category).all()
+    if(quiz_category[0].get('type') == 'click'):
+      questions = Question.query.order_by(Question.id).all()
+    else:
+      questions = Question.query.filter(Question.category == quiz_category[0].get('type')).all()
 
-    questions_list = [question.format() for question in questions]
+    question_bank = [question.format() for question in questions]
 
-    if questions_list is None:
+    if question_bank is None:
         abort(404) 
     else:
-
-      # Now find a unique question that hasn't been asked and return to user
       
+      # Now find a unique question that hasn't been asked and return to user
+      quiz_list = [x for x in question_bank if x.get('id') not in previous_questions[0] ]
+
+      #return a random question to the user
+      try:
+        quiz = quiz_list[random.randrange(0, (len(quiz_list) - 1))]
+
         return jsonify({
             'success': True,
-            'question': questions_list,
+            'question': quiz,
+            'current_category': quiz_category,
+        }), 200
+      except:
+        return jsonify({
+            'success': True,
+            'question': None,
             'current_category': quiz_category,
         }), 200
 
